@@ -38,19 +38,23 @@ class ServerUDP
 
 
 
-
     public static void start()
     {
 
-
         // TODO: [Create a socket and endpoints and bind it to the server IP address and port number]
-
-
+        var ipAddress = IPAddress.Parse(setting.ServerIPAddress);
+        var endpoint = new IPEndPoint(ipAddress, setting.ServerPortNumber);
+        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        socket.Bind(endpoint);
 
         // TODO:[Receive and print a received Message from the client]
+        IPAddress clientIP = IPAddress.Parse(setting.ClientIPAddress);
+        var clientEndPoint = new IPEndPoint(clientIP, setting.ClientPortNumber);
 
-
-
+        string message = "HELLO";
+        byte[] sendData = Encoding.ASCII.GetBytes(message);
+        socket.SendTo(sendData, clientEndPoint);
+        Console.WriteLine($"Sent message to client: {message}");
 
         // TODO:[Receive and print Hello]
 

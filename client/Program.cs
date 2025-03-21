@@ -28,21 +28,28 @@ public class Setting
 
 class ClientUDP
 {
-
     //TODO: [Deserialize Setting.json]
     static string configFile = @"../Setting.json";
     static string configContent = File.ReadAllText(configFile);
     static Setting? setting = JsonSerializer.Deserialize<Setting>(configContent);
 
-
     public static void start()
     {
-
         //TODO: [Create endpoints and socket]
-
+        var ipAdress = IPAddress.Parse(setting.ClientIPAddress);
+        var endpoint = new IPEndPoint(ipAdress, setting.ClientPortNumber);
+        var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+        socket.Bind(endpoint);
 
         //TODO: [Create and send HELLO]
+        IPAddress serverIP = IPAddress.Parse(setting.ServerIPAddress);
+        var serverEndPoint = new IPEndPoint(serverIP, setting.ServerPortNumber);
 
+        byte[] receiveBuffer = new byte[1024]; 
+        EndPoint senderEndPoint = new IPEndPoint(IPAddress.Any, 0);
+        int bytesReceived = socket.ReceiveFrom(receiveBuffer, ref senderEndPoint);
+        string receivedMessage = Encoding.ASCII.GetString(receiveBuffer, 0, bytesReceived);
+        Console.WriteLine($"Received from server: {receivedMessage}");
         //TODO: [Receive and print Welcome from server]
 
         // TODO: [Create and send DNSLookup Message]
