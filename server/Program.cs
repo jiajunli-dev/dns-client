@@ -36,12 +36,11 @@ class ServerUDP
 
     // TODO: [Read the JSON file and return the list of DNSRecords]
     static string filepath = "DNSrecords.json";
-    public static string JSONData = File.ReadAllText(filepath); 
-
+    static string dnsContent = File.ReadAllText(filepath); 
+    static List<DNSRecord>? records = JsonSerializer.Deserialize<List<DNSRecord>>(dnsContent);
 
     public static void start()
     {
-        
         // TODO: [Create a socket and endpoints and bind it to the server IP address and port number]
         var ipAddress = IPAddress.Parse(setting.ServerIPAddress);
         var endpoint = new IPEndPoint(ipAddress, setting.ServerPortNumber);
@@ -89,8 +88,8 @@ class ServerUDP
 
                 if (clientMessage.MsgType == MessageType.DNSLookup)
                 {
-                    DNSRecord clientrequest = clientMessage.Content as DNSRecord;
-                    foreach (DNSRecord temp in JSONData)
+                    var clientrequest = clientMessage.Content as DNSRecord;
+                    foreach (var temp in records)
                     {
                         
                     }
