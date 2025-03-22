@@ -35,7 +35,8 @@ class ServerUDP
     static Setting? setting = JsonSerializer.Deserialize<Setting>(configContent);
 
     // TODO: [Read the JSON file and return the list of DNSRecords]
-
+    static string filepath = "DNSrecords.json";
+    public static string JSONData = File.ReadAllText(filepath); 
 
 
     public static void start()
@@ -84,6 +85,15 @@ class ServerUDP
                     };
                     
                     SendMessage(socket, clientEndPoint, endMessage);
+                }
+
+                if (clientMessage.MsgType == MessageType.DNSLookup)
+                {
+                    DNSRecord clientrequest = clientMessage.Content as DNSRecord;
+                    foreach (DNSRecord temp in JSONData)
+                    {
+                        
+                    }
                 }
             }
         }
