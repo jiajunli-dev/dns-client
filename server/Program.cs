@@ -66,6 +66,26 @@ class ServerUDP
                 Content = "Welcome from DNS server"
             };
             SendMessage(socket, clientEndPoint, messageWelcome);
+
+            bool conncetion = false;
+            while (!conncetion)
+            {
+                var clientMessage = ReceiveMessage(socket, ref clientEndPoint);
+
+                if (clientMessage.MsgType == MessageType.End)
+                {
+                    conncetion = true;
+
+                    var endMessage = new Message()
+                    {
+                        MsgId = 5,
+                        MsgType = MessageType.End,
+                        Content = "Connection terminated"
+                    };
+                    
+                    SendMessage(socket, clientEndPoint, endMessage);
+                }
+            }
         }
 
         // TODO:[Receive and print DNSLookup]

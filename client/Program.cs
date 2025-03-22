@@ -45,16 +45,23 @@ class ClientUDP
         IPAddress serverIP = IPAddress.Parse(setting.ServerIPAddress);
         EndPoint serverEndPoint = new IPEndPoint(serverIP, setting.ServerPortNumber);
 
-        var message = new Message()
+        var helloMessage = new Message()
         {
             MsgId = 1,
             MsgType = MessageType.Hello,
             Content = "Hello from DNS client"
         };
-        SendMessage(socket, serverEndPoint, message);
+        SendMessage(socket, serverEndPoint, helloMessage);
         //TODO: [Receive and print Welcome from server]
         ReceiveMessage(socket, ref serverEndPoint);
 
+        var endMessage = new Message()
+        {
+            MsgId = 1,
+            MsgType = MessageType.End,
+            Content = "End from DNS client"
+        };
+        SendMessage(socket, serverEndPoint, endMessage);
         // TODO: [Create and send DNSLookup Message]
 
 
