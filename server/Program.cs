@@ -40,7 +40,8 @@ class ServerUDP
 
     public static void start()
     {
-
+        Console.WriteLine("Server on port 3200 is listening...");
+        
         // TODO: [Create a socket and endpoints and bind it to the server IP address and port number]
         var ipAddress = IPAddress.Parse(setting.ServerIPAddress);
         var endpoint = new IPEndPoint(ipAddress, setting.ServerPortNumber);
@@ -51,14 +52,17 @@ class ServerUDP
         IPAddress clientIP = IPAddress.Parse(setting.ClientIPAddress);
         EndPoint clientEndPoint = new IPEndPoint(clientIP, setting.ClientPortNumber);
 
+        // TODO:[Receive and print Hello]
         ReceiveMessage(socket, ref clientEndPoint);
 
-        // TODO:[Receive and print Hello]
-
-
-
         // TODO:[Send Welcome to the client]
-
+        var messageWelcome = new Message()
+        {
+            MsgId = 2,
+            MsgType = MessageType.Welcome,
+            Content = "Welcome from DNS server"
+        };
+        SendMessage(socket, clientEndPoint, messageWelcome);
 
         // TODO:[Receive and print DNSLookup]
 

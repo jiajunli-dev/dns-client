@@ -53,6 +53,7 @@ class ClientUDP
         };
         SendMessage(socket, serverEndPoint, message);
         //TODO: [Receive and print Welcome from server]
+        ReceiveMessage(socket, ref serverEndPoint);
 
         // TODO: [Create and send DNSLookup Message]
 
