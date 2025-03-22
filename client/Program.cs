@@ -45,25 +45,15 @@ class ClientUDP
         IPAddress serverIP = IPAddress.Parse(setting.ServerIPAddress);
         EndPoint serverEndPoint = new IPEndPoint(serverIP, setting.ServerPortNumber);
 
-        var helloMessage = new Message()
-        {
-            MsgId = 1,
-            MsgType = MessageType.Hello,
-            Content = "Hello from DNS client"
-        };
-        SendMessage(socket, serverEndPoint, helloMessage);
+        SendMessage(socket, serverEndPoint, messageFactory(1, MessageType.Hello, "Hello from DNS client"));
         //TODO: [Receive and print Welcome from server]
         ReceiveMessage(socket, ref serverEndPoint);
 
-        var endMessage = new Message()
-        {
-            MsgId = 1,
-            MsgType = MessageType.End,
-            Content = "End from DNS client"
-        };
-        SendMessage(socket, serverEndPoint, endMessage);
+        // SendMessage(socket, serverEndPoint, messageFactory(2, MessageType.DNSLookup, "DNS lookup from DNS client"));
+        // SendMessage(socket, serverEndPoint, messageFactory(2, MessageType.Ack, "Ack from DNS client"));
+        // SendMessage(socket, serverEndPoint, messageFactory(2, MessageType.End, "End from DNS client"));
         // TODO: [Create and send DNSLookup Message]
-
+        
 
         //TODO: [Receive and print DNSLookupReply from server]
 
@@ -99,5 +89,15 @@ class ClientUDP
         Console.WriteLine($"Received message: Type={receivedMessage.MsgType}, ID={receivedMessage.MsgId}");
         
         return receivedMessage;
+    }
+
+    private static Message messageFactory(int id, MessageType msgType, object? obj)
+    {
+        return new Message()
+        {
+            MsgId = id,
+            MsgType = msgType,
+            Content = obj
+        };
     }
 }

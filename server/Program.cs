@@ -138,4 +138,14 @@ class ServerUDP
         
         return receivedMessage;
     }
+
+    private static Message messageFactory(int id, MessageType msgType, object? obj)
+    {
+        return new Message()
+        {
+            MsgId = id,
+            MsgType = msgType,
+            Content = obj
+        };
+    }
 }
