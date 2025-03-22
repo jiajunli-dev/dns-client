@@ -49,12 +49,9 @@ class ServerUDP
 
         // TODO:[Receive and print a received Message from the client]
         IPAddress clientIP = IPAddress.Parse(setting.ClientIPAddress);
-        var clientEndPoint = new IPEndPoint(clientIP, setting.ClientPortNumber);
+        EndPoint clientEndPoint = new IPEndPoint(clientIP, setting.ClientPortNumber);
 
-        string message = "HELLO";
-        byte[] sendData = Encoding.ASCII.GetBytes(message);
-        socket.SendTo(sendData, clientEndPoint);
-        Console.WriteLine($"Sent message to client: {message}");
+        ReceiveMessage(socket, ref clientEndPoint);
 
         // TODO:[Receive and print Hello]
 
@@ -81,6 +78,27 @@ class ServerUDP
         // TODO:[If no further requests receieved send End to the client]
 
     }
+    
+    private static void SendMessage(Socket socket, EndPoint clientEndPoint, Message message)
+    {
+        string jsonString = JsonSerializer.Serialize(message);
+        byte[] sendData = Encoding.UTF8.GetBytes(jsonString);
+        socket.SendTo(sendData, clientEndPoint);
 
-
+        Console.WriteLine($"Sent message: Type={message.MsgType}, ID={message.MsgId}");
+    }
+    
+    private static Message ReceiveMessage(Socket socket, ref EndPoint remoteEndPoint)
+    {
+        byte[] buffer = new byte[4096];
+        
+        int bytesReceived = socket.ReceiveFrom(buffer, ref remoteEndPoint);
+        string jsonString = Encoding.UTF8.GetString(buffer, 0, bytesReceived);
+        
+        Message receivedMessage = JsonSerializer.Deserialize<Message>(jsonString);
+        
+        Console.WriteLine($"Received message: Type={receivedMessage.MsgType}, ID={receivedMessage.MsgId}");
+        
+        return receivedMessage;
+    }
 }

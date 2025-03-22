@@ -43,13 +43,15 @@ class ClientUDP
 
         //TODO: [Create and send HELLO]
         IPAddress serverIP = IPAddress.Parse(setting.ServerIPAddress);
-        var serverEndPoint = new IPEndPoint(serverIP, setting.ServerPortNumber);
+        EndPoint serverEndPoint = new IPEndPoint(serverIP, setting.ServerPortNumber);
 
-        byte[] receiveBuffer = new byte[1024]; 
-        EndPoint senderEndPoint = new IPEndPoint(IPAddress.Any, 0);
-        int bytesReceived = socket.ReceiveFrom(receiveBuffer, ref senderEndPoint);
-        string receivedMessage = Encoding.ASCII.GetString(receiveBuffer, 0, bytesReceived);
-        Console.WriteLine($"Received from server: {receivedMessage}");
+        var message = new Message()
+        {
+            MsgId = 1,
+            MsgType = MessageType.Hello,
+            Content = "Hello from DNS client"
+        };
+        SendMessage(socket, serverEndPoint, message);
         //TODO: [Receive and print Welcome from server]
 
         // TODO: [Create and send DNSLookup Message]
@@ -66,8 +68,28 @@ class ClientUDP
         //TODO: [Receive and print End from server]
 
 
+    }
 
+    private static void SendMessage(Socket socket, EndPoint clientEndPoint, Message message)
+    {
+        string jsonString = JsonSerializer.Serialize(message);
+        byte[] sendData = Encoding.UTF8.GetBytes(jsonString);
+        socket.SendTo(sendData, clientEndPoint);
 
+        Console.WriteLine($"Sent message: Type={message.MsgType}, ID={message.MsgId}");
+    }
 
+    private static Message ReceiveMessage(Socket socket, ref EndPoint remoteEndPoint)
+    {
+        byte[] buffer = new byte[4096];
+        
+        int bytesReceived = socket.ReceiveFrom(buffer, ref remoteEndPoint);
+        string jsonString = Encoding.UTF8.GetString(buffer, 0, bytesReceived);
+        
+        Message receivedMessage = JsonSerializer.Deserialize<Message>(jsonString);
+        
+        Console.WriteLine($"Received message: Type={receivedMessage.MsgType}, ID={receivedMessage.MsgId}");
+        
+        return receivedMessage;
     }
 }
