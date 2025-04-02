@@ -91,6 +91,7 @@ class ServerUDP
                 //na een goede handshake wordt met deze while loop de connection vastgezet totdat server end message verstuurt
                 while (currentconnection)
                 {
+                    // hier ontvangen we nieuwe message van client (dnslookup)
                     var newmessage = ReceiveMessage(socket, ref clientEndPoint);
 
                     // psuedocode:
@@ -102,7 +103,7 @@ class ServerUDP
                     //}
 
                     //deze code hieronder moet uiteindelijk weg, zet hierboven een timer voor het ontvangen van een nieuwe message. als timer verloopt dan stuurt server end message//
-                    if (clientMessage.MsgType == MessageType.End)
+                    if (newmessage.MsgType == MessageType.End)
                     {
                         connection = true;
 
@@ -119,11 +120,11 @@ class ServerUDP
                     ///////////////////////////////////////////////////////////////
                     
 
-                    if (clientMessage.MsgType == MessageType.DNSLookup)
+                    if (newmessage.MsgType == MessageType.DNSLookup)
                     {
 
                         //zoeken naar dnsrecord
-                        var clientrequest = clientMessage.Content as DNSRecord;
+                        var clientrequest = newmessage.Content as DNSRecord;
                         foreach (var temp in records)
                         {
                             if (temp.Name == clientrequest.Name && temp.Type == clientrequest.Type)
