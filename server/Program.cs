@@ -55,26 +55,42 @@ class ServerUDP
         {
             Console.WriteLine("Server on port 3200 is listening...");
 
-            // TODO:[Receive and print Hello]
-            ReceiveMessage(socket, ref clientEndPoint);
-            
-            // TODO:[Send Welcome to the client]
-            var messageWelcome = new Message()
-            {
-                MsgId = 2,
-                MsgType = MessageType.Welcome,
-                Content = "Welcome from DNS server"
-            };
-            SendMessage(socket, clientEndPoint, messageWelcome);
 
-            bool conncetion = false;
-            while (!conncetion)
+            bool connection = false;
+            while (!connection)
             {
+                // TODO:[Receive and print Hello]
                 var clientMessage = ReceiveMessage(socket, ref clientEndPoint);
 
-                if (clientMessage.MsgType == MessageType.End)
+                // TODO:[Send Welcome to the client]
+                
+                if (clientMessage.MsgType != MessageType.Hello)
                 {
-                    conncetion = true;
+                    var errorMessage = new Message()
+                    {
+                        MsgId = 401,
+                        MsgType = MessageType.Error,
+                        Content = "New clients need to send an hello msg first"
+                    };
+                    SendMessage(socket, clientEndPoint, errorMessage);
+                }
+
+                else{
+                    var messageWelcome = new Message()
+                    {
+                        MsgId = 2,
+                        MsgType = MessageType.Welcome,
+                        Content = "Welcome from DNS server"
+                    };
+                    SendMessage(socket, clientEndPoint, messageWelcome);
+                }
+                
+                bool currentconnection = true;
+                while (currentconnection)
+                {
+                    if (clientMessage.MsgType == MessageType.End)
+                {
+                    connection = true;
 
                     var endMessage = new Message()
                     {
@@ -84,6 +100,7 @@ class ServerUDP
                     };
                     
                     SendMessage(socket, clientEndPoint, endMessage);
+                    currentconnection = false;
                 }
 
                 if (clientMessage.MsgType == MessageType.DNSLookup)
@@ -91,8 +108,17 @@ class ServerUDP
                     var clientrequest = clientMessage.Content as DNSRecord;
                     foreach (var temp in records)
                     {
-                        
+                        if (temp.Name == clientrequest.Name && temp.Type == clientrequest.Type)
+                        {
+                            //send DNSLookupReply message here with same MsgId as original request
+                        }
+
+                        else
+                        {
+                            
+                        }
                     }
+                }
                 }
             }
         }
