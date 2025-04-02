@@ -57,13 +57,13 @@ class ServerUDP
 
 
             bool connection = false;
+            //in deze while loop zoekt server naar client voor connection
             while (!connection)
             {
-                // TODO:[Receive and print Hello]
+
                 var clientMessage = ReceiveMessage(socket, ref clientEndPoint);
 
-                // TODO:[Send Welcome to the client]
-                
+                //checken of eerste message hello van client is
                 if (clientMessage.MsgType != MessageType.Hello)
                 {
                     var errorMessage = new Message()
@@ -74,8 +74,10 @@ class ServerUDP
                     };
                     SendMessage(socket, clientEndPoint, errorMessage);
                 }
-
-                else{
+                
+                //als eerste message daadwerkelijk hello van client is, verstuurt de server een welcome en is de handshake compleet
+                else
+                {
                     var messageWelcome = new Message()
                     {
                         MsgId = 2,
@@ -86,59 +88,89 @@ class ServerUDP
                 }
                 
                 bool currentconnection = true;
+                //na een goede handshake wordt met deze while loop de connection vastgezet totdat server end message verstuurt
                 while (currentconnection)
                 {
+                    var newmessage = ReceiveMessage(socket, ref clientEndPoint);
+
+                    // psuedocode:
+                    // timer.start;
+                    // if (timer.time == 10 sec)
+                    //{
+                    //      sendmessage(endmessage);
+                    //      currentconnection = false;
+                    //}
+
+                    //deze code hieronder moet uiteindelijk weg, zet hierboven een timer voor het ontvangen van een nieuwe message. als timer verloopt dan stuurt server end message//
                     if (clientMessage.MsgType == MessageType.End)
-                {
-                    connection = true;
-
-                    var endMessage = new Message()
                     {
-                        MsgId = 5,
-                        MsgType = MessageType.End,
-                        Content = "Connection terminated"
-                    };
-                    
-                    SendMessage(socket, clientEndPoint, endMessage);
-                    currentconnection = false;
-                }
+                        connection = true;
 
-                if (clientMessage.MsgType == MessageType.DNSLookup)
-                {
-                    var clientrequest = clientMessage.Content as DNSRecord;
-                    foreach (var temp in records)
-                    {
-                        if (temp.Name == clientrequest.Name && temp.Type == clientrequest.Type)
+                        var endMessage = new Message()
                         {
-                            //send DNSLookupReply message here with same MsgId as original request
-                        }
-
-                        else
-                        {
-                            
-                        }
+                            MsgId = 5,
+                            MsgType = MessageType.End,
+                            Content = "Connection terminated"
+                        };
+                        
+                        SendMessage(socket, clientEndPoint, endMessage);
+                        currentconnection = false;
                     }
-                }
+                    ///////////////////////////////////////////////////////////////
+                    
+
+                    if (clientMessage.MsgType == MessageType.DNSLookup)
+                    {
+
+                        //zoeken naar dnsrecord
+                        var clientrequest = clientMessage.Content as DNSRecord;
+                        foreach (var temp in records)
+                        {
+                            if (temp.Name == clientrequest.Name && temp.Type == clientrequest.Type)
+                            {
+                                //send DNSLookupReply message here with same MsgId as original request
+                                var DNSReply = new Message()
+                                {
+                                    MsgId = clientMessage.MsgId,
+                                    MsgType = MessageType.DNSLookupReply,
+                                    Content = temp
+                                };
+                                SendMessage(socket, clientEndPoint, DNSReply);
+
+                                //hier ontvangen we de ack van de client, doen we niks mee
+                                var ack = ReceiveMessage(socket, ref clientEndPoint);
+                            }
+                        }
+
+                        //als DNSRecord niet gevonden is:
+                        var errorMessage = new Message()
+                        {
+                            MsgId = 401,
+                            MsgType = MessageType.Error,
+                            Content = $"Unable to find Record with name: {clientrequest.Name} and type: {clientrequest.Type}"
+                        };
+                        SendMessage(socket, clientEndPoint, errorMessage);
+                    }
                 }
             }
         }
 
-        // TODO:[Receive and print DNSLookup]
+        // TODO:[Receive and print DNSLookup] -----> done
 
 
-        // TODO:[Query the DNSRecord in Json file]
+        // TODO:[Query the DNSRecord in Json file] -----> done
 
-        // TODO:[If found Send DNSLookupReply containing the DNSRecord]
-
-
-
-        // TODO:[If not found Send Error]
+        // TODO:[If found Send DNSLookupReply containing the DNSRecord] -----> done
 
 
-        // TODO:[Receive Ack about correct DNSLookupReply from the client]
+
+        // TODO:[If not found Send Error] done
 
 
-        // TODO:[If no further requests receieved send End to the client]
+        // TODO:[Receive Ack about correct DNSLookupReply from the client] -----> done
+
+
+        // TODO:[If no further requests receieved send End to the client] -----> alleen nog timer om connection met server te eindigen
 
     }
     
