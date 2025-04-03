@@ -67,7 +67,10 @@ class ServerUDP
                 //checken of eerste message hello van client is
                 if (clientMessage.MsgType != MessageType.Hello)
                 {
+                    Console.WriteLine("Received wrong message order");
                     SendMessage(socket, clientEndPoint, messageFactory(7534445, MessageType.Error, "Domain not found"));
+                    connection = false;
+                    break;
                 }
                 
                 //als eerste message daadwerkelijk hello van client is, verstuurt de server een welcome en is de handshake compleet
