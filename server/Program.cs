@@ -55,12 +55,13 @@ class ServerUDP
         {
             Console.WriteLine("Server on port 3200 is listening...");
 
-
             bool connection = false;
+            bool currentconnection = false;
+            
+            socket.ReceiveTimeout = 0;
             //in deze while loop zoekt server naar client voor connection
             while (!connection)
             {
-
                 var clientMessage = ReceiveMessage(socket, ref clientEndPoint);
 
                 //checken of eerste message hello van client is
@@ -68,9 +69,9 @@ class ServerUDP
                 {
                     var errorMessage = new Message()
                     {
-                        MsgId = 401,
+                        MsgId = 7534445,
                         MsgType = MessageType.Error,
-                        Content = "New clients need to send an hello msg first"
+                        Content = "Domain not found"
                     };
                     SendMessage(socket, clientEndPoint, errorMessage);
                 }
@@ -82,75 +83,97 @@ class ServerUDP
                     {
                         MsgId = 2,
                         MsgType = MessageType.Welcome,
-                        Content = "Welcome from DNS server"
+                        Content = "Welcome from server"
                     };
                     SendMessage(socket, clientEndPoint, messageWelcome);
                 }
+
+                connection = true;
+                currentconnection = true;
                 
-                bool currentconnection = true;
+                socket.ReceiveTimeout = 10000;
                 //na een goede handshake wordt met deze while loop de connection vastgezet totdat server end message verstuurt
                 while (currentconnection)
                 {
-                    // hier ontvangen we nieuwe message van client (dnslookup)
                     var newmessage = ReceiveMessage(socket, ref clientEndPoint);
 
-                    // psuedocode:
-                    // timer.start;
-                    // if (timer.time == 10 sec)
-                    //{
-                    //      sendmessage(endmessage);
-                    //      currentconnection = false;
-                    //}
-
-                    //deze code hieronder moet uiteindelijk weg, zet hierboven een timer voor het ontvangen van een nieuwe message. als timer verloopt dan stuurt server end message//
-                    if (newmessage.MsgType == MessageType.End)
+                    if (newmessage.MsgType == MessageType.End) 
                     {
-                        connection = true;
-
                         var endMessage = new Message()
                         {
-                            MsgId = 5,
+                            MsgId = 91377,
                             MsgType = MessageType.End,
-                            Content = "Connection terminated"
+                            Content = "End of DNSLookup"
                         };
-                        
                         SendMessage(socket, clientEndPoint, endMessage);
-                        currentconnection = false;
-                    }
-                    ///////////////////////////////////////////////////////////////
-                    
 
+                        currentconnection = false;
+                        break;
+                    }
+                    
+                    // hier ontvangen we nieuwe message van client (dnslookup)
                     if (newmessage.MsgType == MessageType.DNSLookup)
                     {
 
                         //zoeken naar dnsrecord
-                        var clientrequest = newmessage.Content as DNSRecord;
-                        foreach (var temp in records)
+                        string clientrequest = null;
+                        bool isValidFormat = true;
+                        
+                        try 
                         {
-                            if (temp.Name == clientrequest.Name && temp.Type == clientrequest.Type)
+                            clientrequest = JsonSerializer.Deserialize<string>(JsonSerializer.Serialize(newmessage.Content));
+                        }
+                        catch (JsonException)
+                        {
+                            Console.WriteLine("Invalid request format received");
+                            isValidFormat = false;
+                            
+                            var errorMessage = new Message()
                             {
-                                //send DNSLookupReply message here with same MsgId as original request
-                                var DNSReply = new Message()
+                                MsgId = 7534445,
+                                MsgType = MessageType.Error,
+                                Content = "Domain not found"
+                            };
+                            SendMessage(socket, clientEndPoint, errorMessage);
+                            continue;
+                        }
+                        
+                        if (isValidFormat) 
+                        {
+                            bool found = false;
+                            foreach (var temp in records)
+                            {   
+                                if (temp.Name == clientrequest)
                                 {
-                                    MsgId = clientMessage.MsgId,
-                                    MsgType = MessageType.DNSLookupReply,
-                                    Content = temp
-                                };
-                                SendMessage(socket, clientEndPoint, DNSReply);
+                                    //send DNSLookupReply message here with same MsgId as original request
+                                    var DNSReply = new Message()
+                                    {
+                                        MsgId = newmessage.MsgId,
+                                        MsgType = MessageType.DNSLookupReply,
+                                        Content = temp
+                                    };
+                                    SendMessage(socket, clientEndPoint, DNSReply);
 
-                                //hier ontvangen we de ack van de client, doen we niks mee
-                                var ack = ReceiveMessage(socket, ref clientEndPoint);
+                                    //hier ontvangen we de ack van de client, doen we niks mee
+                                    var ack = ReceiveMessage(socket, ref clientEndPoint);
+                                    System.Console.WriteLine($"received ack id: {ack.Content}");
+                                    found = true;
+                                    break;
+                                }
+                            }
+
+                            //als DNSRecord niet gevonden is:
+                            if (!found) 
+                            {
+                                var errorMessage = new Message()
+                                {
+                                    MsgId = 7534445,
+                                    MsgType = MessageType.Error,
+                                    Content = "Domain not found"
+                                };
+                                SendMessage(socket, clientEndPoint, errorMessage);
                             }
                         }
-
-                        //als DNSRecord niet gevonden is:
-                        var errorMessage = new Message()
-                        {
-                            MsgId = 401,
-                            MsgType = MessageType.Error,
-                            Content = $"Unable to find Record with name: {clientrequest.Name} and type: {clientrequest.Type}"
-                        };
-                        SendMessage(socket, clientEndPoint, errorMessage);
                     }
                 }
             }
@@ -187,15 +210,28 @@ class ServerUDP
     private static Message ReceiveMessage(Socket socket, ref EndPoint remoteEndPoint)
     {
         byte[] buffer = new byte[4096];
-        
-        int bytesReceived = socket.ReceiveFrom(buffer, ref remoteEndPoint);
-        string jsonString = Encoding.UTF8.GetString(buffer, 0, bytesReceived);
-        
-        Message receivedMessage = JsonSerializer.Deserialize<Message>(jsonString);
-        
-        Console.WriteLine($"Received message: Type={receivedMessage.MsgType}, ID={receivedMessage.MsgId}");
-        
-        return receivedMessage;
+
+        try 
+        {
+            int bytesReceived = socket.ReceiveFrom(buffer, ref remoteEndPoint);
+            string jsonString = Encoding.UTF8.GetString(buffer, 0, bytesReceived);
+            
+            Message receivedMessage = JsonSerializer.Deserialize<Message>(jsonString);
+            
+            Console.WriteLine($"Received message: Type={receivedMessage.MsgType}, ID={receivedMessage.MsgId}");
+            
+            return receivedMessage;
+        } 
+        catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut)
+        {
+            Console.WriteLine("Send end message, clossing connection...");
+            return new Message
+            {
+                MsgId = -1,
+                MsgType = MessageType.End,
+                Content = "End message from server"
+            };
+        }
     }
 
     private static Message messageFactory(int id, MessageType msgType, object? obj)
