@@ -110,7 +110,7 @@ class ServerUDP
                             Console.WriteLine("Invalid request format received");
                             isValidFormat = false;
                             
-                            SendMessage(socket, clientEndPoint, messageFactory(7534445, MessageType.Error, "Domain not found"));
+                            SendMessage(socket, clientEndPoint, messageFactory(7534445, MessageType.Error, "Invalid request format"));
                             continue;
                         }
                         
