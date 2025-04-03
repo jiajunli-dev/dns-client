@@ -10,6 +10,7 @@ using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using LibData;
 
+// SendTo();
 class Program
 {
     static void Main(string[] args)
@@ -48,7 +49,7 @@ class ClientUDP
         var endpoint = new IPEndPoint(ipAdress, setting.ClientPortNumber);
         
         var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-        socket.Bind(endpoint);
+        InitializeSocket(socket, endpoint);
 
         //TODO: [Create and send HELLO]
         //TODO: [Receive and print Welcome from server]
@@ -96,13 +97,37 @@ class ClientUDP
             var endResponse = ReceiveMessage(socket, ref serverEndPoint);
             if (endResponse.MsgType == MessageType.End)
             {
-                Console.WriteLine("Server ended the session.");
+                System.Console.WriteLine($"{endResponse.Content}");
                 socket.Close();
             }
         }
         else 
         {
             Console.WriteLine("No reponse from the server, closing connection...");
+            socket.Close();
+        }
+    }
+
+    private static void InitializeSocket(Socket socket, EndPoint endpoint)
+    {
+        try
+        {
+            socket.Bind(endpoint);
+            Console.WriteLine($"Server socket successfully bound to {endpoint}");
+        }
+        catch (SocketException ex)
+        {
+            if (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+            {
+                Console.WriteLine($"Error: Port {setting.ServerPortNumber} is already in use by another application.");
+                Console.WriteLine("Please change the port in Setting.json or stop the other application.");
+                return;
+            }
+            else
+            {
+                Console.WriteLine($"Socket binding error: {ex.Message} (Error code: {ex.SocketErrorCode})");
+                return;
+            }
         }
     }
 

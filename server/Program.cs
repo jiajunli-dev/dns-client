@@ -45,7 +45,7 @@ class ServerUDP
         var ipAddress = IPAddress.Parse(setting.ServerIPAddress);
         var endpoint = new IPEndPoint(ipAddress, setting.ServerPortNumber);
         var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-        socket.Bind(endpoint);
+        InitializeSocket(socket, endpoint);
 
         // TODO:[Receive and print a received Message from the client]
         IPAddress clientIP = IPAddress.Parse(setting.ClientIPAddress);
@@ -67,25 +67,13 @@ class ServerUDP
                 //checken of eerste message hello van client is
                 if (clientMessage.MsgType != MessageType.Hello)
                 {
-                    var errorMessage = new Message()
-                    {
-                        MsgId = 7534445,
-                        MsgType = MessageType.Error,
-                        Content = "Domain not found"
-                    };
-                    SendMessage(socket, clientEndPoint, errorMessage);
+                    SendMessage(socket, clientEndPoint, messageFactory(7534445, MessageType.Error, "Domain not found"));
                 }
                 
                 //als eerste message daadwerkelijk hello van client is, verstuurt de server een welcome en is de handshake compleet
                 else
                 {
-                    var messageWelcome = new Message()
-                    {
-                        MsgId = 2,
-                        MsgType = MessageType.Welcome,
-                        Content = "Welcome from server"
-                    };
-                    SendMessage(socket, clientEndPoint, messageWelcome);
+                    SendMessage(socket, clientEndPoint, messageFactory(2, MessageType.Welcome, "Welcome from server"));
                 }
 
                 connection = true;
@@ -99,13 +87,7 @@ class ServerUDP
 
                     if (newmessage.MsgType == MessageType.End) 
                     {
-                        var endMessage = new Message()
-                        {
-                            MsgId = 91377,
-                            MsgType = MessageType.End,
-                            Content = "End of DNSLookup"
-                        };
-                        SendMessage(socket, clientEndPoint, endMessage);
+                        SendMessage(socket, clientEndPoint, newmessage);
 
                         currentconnection = false;
                         break;
@@ -128,13 +110,7 @@ class ServerUDP
                             Console.WriteLine("Invalid request format received");
                             isValidFormat = false;
                             
-                            var errorMessage = new Message()
-                            {
-                                MsgId = 7534445,
-                                MsgType = MessageType.Error,
-                                Content = "Domain not found"
-                            };
-                            SendMessage(socket, clientEndPoint, errorMessage);
+                            SendMessage(socket, clientEndPoint, messageFactory(7534445, MessageType.Error, "Domain not found"));
                             continue;
                         }
                         
@@ -146,17 +122,10 @@ class ServerUDP
                                 if (temp.Name == clientrequest)
                                 {
                                     //send DNSLookupReply message here with same MsgId as original request
-                                    var DNSReply = new Message()
-                                    {
-                                        MsgId = newmessage.MsgId,
-                                        MsgType = MessageType.DNSLookupReply,
-                                        Content = temp
-                                    };
-                                    SendMessage(socket, clientEndPoint, DNSReply);
+                                    SendMessage(socket, clientEndPoint, messageFactory(newmessage.MsgId, MessageType.DNSLookupReply, temp));
 
                                     //hier ontvangen we de ack van de client, doen we niks mee
-                                    var ack = ReceiveMessage(socket, ref clientEndPoint);
-                                    System.Console.WriteLine($"received ack id: {ack.Content}");
+                                    ReceiveMessage(socket, ref clientEndPoint);
                                     found = true;
                                     break;
                                 }
@@ -165,13 +134,7 @@ class ServerUDP
                             //als DNSRecord niet gevonden is:
                             if (!found) 
                             {
-                                var errorMessage = new Message()
-                                {
-                                    MsgId = 7534445,
-                                    MsgType = MessageType.Error,
-                                    Content = "Domain not found"
-                                };
-                                SendMessage(socket, clientEndPoint, errorMessage);
+                                SendMessage(socket, clientEndPoint, messageFactory(7534445, MessageType.Error, "Domain not found"));
                             }
                         }
                     }
@@ -197,7 +160,30 @@ class ServerUDP
         // TODO:[If no further requests receieved send End to the client] -----> alleen nog timer om connection met server te eindigen
 
     }
-    
+
+    private static void InitializeSocket(Socket socket, EndPoint endpoint)
+    {
+        try
+        {
+            socket.Bind(endpoint);
+            Console.WriteLine($"Server socket successfully bound to {endpoint}");
+        }
+        catch (SocketException ex)
+        {
+            if (ex.SocketErrorCode == SocketError.AddressAlreadyInUse)
+            {
+                Console.WriteLine($"Error: Port {setting.ServerPortNumber} is already in use by another application.");
+                Console.WriteLine("Please change the port in Setting.json or stop the other application.");
+                return;
+            }
+            else
+            {
+                Console.WriteLine($"Socket binding error: {ex.Message} (Error code: {ex.SocketErrorCode})");
+                return;
+            }
+        }
+    }
+
     private static void SendMessage(Socket socket, EndPoint clientEndPoint, Message message)
     {
         string jsonString = JsonSerializer.Serialize(message);
@@ -225,12 +211,7 @@ class ServerUDP
         catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut)
         {
             Console.WriteLine("Send end message, clossing connection...");
-            return new Message
-            {
-                MsgId = -1,
-                MsgType = MessageType.End,
-                Content = "End message from server"
-            };
+            return messageFactory(91377, MessageType.End, "End of DNSLookup");
         }
     }
 
